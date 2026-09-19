@@ -1,7 +1,5 @@
 <div align="center">
 
-  <img src="public/logo.png" alt="SEGARIS Logo" width="120" style="margin-bottom: 16px;" />
-
   # SEGARIS
   ### *Sistem Edukasi Gaya Hidup & Nutrisi Sehat Terintegrasi*
   **"Masa Depan Sehat & Sejahtera Dimulai dari Langkah Kecil Hari Ini"**
