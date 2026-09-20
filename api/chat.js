@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       `Pesan Pengguna Saat Ini: ${message}\n\nBalasan AI:`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-flash-lite',
       contents: prompt,
     });
 
