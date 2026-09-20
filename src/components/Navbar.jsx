@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, X, ShieldCheck, User, LogOut } from 'lucide-react';
 
 export default function Navbar({ onOpenPrivacy, onOpenAuth, currentUser, onLogout, onNavigateHome }) {
@@ -30,6 +30,7 @@ export default function Navbar({ onOpenPrivacy, onOpenAuth, currentUser, onLogou
     <header className={`navbar-wrapper ${scrolled ? 'scrolled' : ''}`}>
       <div className="navbar-inner">
         <a href="#" onClick={(e) => { e.preventDefault(); handleNavClick(''); }} className="navbar-logo">
+          <img src="/logo_tcc.png" alt="TCC Logo" />
           <img src="/logo.png" alt="SEGARIS Logo" />
           <span>SEGARIS</span>
         </a>

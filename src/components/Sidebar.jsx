@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Flame, Calculator, ClipboardCheck, Lightbulb, LogOut, User, Edit3, X } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, currentUser, onLogout, mobileOpen, setMobileOpen, onOpenProfile }) {
@@ -28,6 +28,7 @@ export default function Sidebar({ activeTab, setActiveTab, currentUser, onLogout
 
         {/* Brand Logo Header */}
         <div className="sidebar-brand">
+          <img src="/logo_tcc.png" alt="TCC Logo" className="sidebar-logo-img" />
           <img src="/logo.png" alt="SEGARIS Logo" className="sidebar-logo-img" />
           <div className="sidebar-brand-text">
             <span className="sidebar-title">SEGARIS</span>
