@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Check, Flame, Trophy, Calendar, Cloud, Lock, X, Plus, Settings, AlertCircle, Clock, Moon, Droplets, Footprints, Salad, Ban, Edit3, Trash2, ArrowRight } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -10,18 +10,93 @@ const initialDefaultTargets = [
   { id: 'nosugar', text: 'Hindari minuman manis berlebih', type: 'boolean', targetVal: 1, icon: 'Ban', isMandatory: true, frequency: 'daily' }
 ];
 
+// --- Timezone Helpers ---
+const TZ_LIST = [
+  { label: 'UTC−12:00', iana: 'Etc/GMT+12', offset: -12 },
+  { label: 'UTC−11:00', iana: 'Pacific/Midway', offset: -11 },
+  { label: 'UTC−10:00', iana: 'Pacific/Honolulu', offset: -10 },
+  { label: 'UTC−09:00', iana: 'America/Anchorage', offset: -9 },
+  { label: 'UTC−08:00', iana: 'America/Los_Angeles', offset: -8 },
+  { label: 'UTC−07:00', iana: 'America/Denver', offset: -7 },
+  { label: 'UTC−06:00', iana: 'America/Chicago', offset: -6 },
+  { label: 'UTC−05:00', iana: 'America/New_York', offset: -5 },
+  { label: 'UTC−04:00', iana: 'America/Halifax', offset: -4 },
+  { label: 'UTC−03:00', iana: 'America/Sao_Paulo', offset: -3 },
+  { label: 'UTC−02:00', iana: 'Etc/GMT+2', offset: -2 },
+  { label: 'UTC−01:00', iana: 'Atlantic/Azores', offset: -1 },
+  { label: 'UTC+00:00', iana: 'UTC', offset: 0 },
+  { label: 'UTC+01:00', iana: 'Europe/London', offset: 1 },
+  { label: 'UTC+02:00', iana: 'Europe/Paris', offset: 2 },
+  { label: 'UTC+03:00', iana: 'Europe/Moscow', offset: 3 },
+  { label: 'UTC+04:00', iana: 'Asia/Dubai', offset: 4 },
+  { label: 'UTC+05:00', iana: 'Asia/Karachi', offset: 5 },
+  { label: 'UTC+05:30', iana: 'Asia/Kolkata', offset: 5.5 },
+  { label: 'UTC+06:00', iana: 'Asia/Dhaka', offset: 6 },
+  { label: 'UTC+07:00 (WIB)', iana: 'Asia/Jakarta', offset: 7 },
+  { label: 'UTC+08:00 (WITA)', iana: 'Asia/Makassar', offset: 8 },
+  { label: 'UTC+08:00', iana: 'Asia/Singapore', offset: 8 },
+  { label: 'UTC+09:00 (WIT)', iana: 'Asia/Jayapura', offset: 9 },
+  { label: 'UTC+09:00', iana: 'Asia/Tokyo', offset: 9 },
+  { label: 'UTC+10:00', iana: 'Australia/Sydney', offset: 10 },
+  { label: 'UTC+11:00', iana: 'Pacific/Noumea', offset: 11 },
+  { label: 'UTC+12:00', iana: 'Pacific/Auckland', offset: 12 },
+  { label: 'UTC+13:00', iana: 'Pacific/Apia', offset: 13 },
+  { label: 'UTC+14:00', iana: 'Pacific/Kiritimati', offset: 14 },
+];
+
+function getDeviceTzIana() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
+  } catch { return 'Asia/Jakarta'; }
+}
+
+function ianaToTzEntry(ianaStr) {
+  // Try exact match first
+  const exact = TZ_LIST.find(t => t.iana === ianaStr);
+  if (exact) return exact;
+  // Fallback: match by offset
+  try {
+    const now = new Date();
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const localMs = new Date(now.toLocaleString('en-US', { timeZone: ianaStr })).getTime();
+    const offsetHours = (localMs - new Date(now.toLocaleString('en-US', { timeZone: 'UTC' })).getTime()) / 3600000;
+    const byOffset = TZ_LIST.find(t => t.offset === offsetHours);
+    if (byOffset) return byOffset;
+  } catch {}
+  return TZ_LIST.find(t => t.iana === 'Asia/Jakarta');
+}
+
+// Normalize legacy TZ string format to IANA
+function normalizeTzToIana(tz) {
+  if (!tz) return 'Asia/Jakarta';
+  if (tz.includes('WIB') || tz.includes('Jakarta')) return 'Asia/Jakarta';
+  if (tz.includes('WITA') || tz.includes('Makassar')) return 'Asia/Makassar';
+  if (tz.includes('WIT') || tz.includes('Jayapura')) return 'Asia/Jayapura';
+  // Check if it's already an IANA string
+  if (TZ_LIST.find(t => t.iana === tz)) return tz;
+  return 'Asia/Jakarta';
+}
+
 export default function Challenge30Days({ currentUser, onOpenAuth }) {
   const [setupDone, setSetupDone] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
-  const [timezone, setTimezone] = useState('Asia/Jakarta (WIB)');
+  const [timezone, setTimezone] = useState('Asia/Jakarta');
   const [targets, setTargets] = useState(initialDefaultTargets);
-  const [initialTz, setInitialTz] = useState('Asia/Jakarta (WIB)');
+  const [initialTz, setInitialTz] = useState('Asia/Jakarta');
   const [initialTargets, setInitialTargets] = useState(initialDefaultTargets);
   const [historyData, setHistoryData] = useState({}); // { '1': { water: 2.5, walk: 30, ... }, '2': ... }
   const [currentDayNum, setCurrentDayNum] = useState(1);
   const [startDate, setStartDate] = useState(() => new Date().toISOString());
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const syncTimeoutRef = useRef(null);
+
+  // Timezone Drum Picker State
+  const [autoSyncTz, setAutoSyncTz] = useState(false);
+  const [drumIndex, setDrumIndex] = useState(() => TZ_LIST.findIndex(t => t.iana === 'Asia/Jakarta'));
+  const drumRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const dragStartYRef = useRef(0);
+  const dragStartIndexRef = useRef(0);
 
   // New Custom Target Form State
   const [newTargetText, setNewTargetText] = useState('');
@@ -88,7 +163,9 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
       const hasLocalSetup = localStorage.getItem(setupKey) !== null;
       const savedSetupDone = meta.SEGARIS_setup_done ?? (hasLocalSetup ? JSON.parse(localStorage.getItem(setupKey)) : false);
 
-      const savedTz = meta.SEGARIS_tz || localStorage.getItem(tzKey) || 'Asia/Jakarta (WIB)';
+      // Normalize legacy TZ strings to IANA format
+      const rawTz = meta.SEGARIS_tz || localStorage.getItem(tzKey) || '';
+      const savedTz = rawTz ? normalizeTzToIana(rawTz) : 'Asia/Jakarta';
       const savedStartDate = meta.SEGARIS_start_date || localStorage.getItem(startKey) || new Date().toISOString();
 
       // Ensure user-scoped local storage is in sync with merged data
@@ -111,12 +188,17 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
       setTimezone(savedTz);
       setInitialTz(savedTz);
       setStartDate(savedStartDate);
+
+      // Sync drum index to loaded TZ
+      const tzEntry = ianaToTzEntry(savedTz);
+      const idx = TZ_LIST.findIndex(t => t.iana === (tzEntry?.iana || 'Asia/Jakarta'));
+      setDrumIndex(idx >= 0 ? idx : TZ_LIST.findIndex(t => t.iana === 'Asia/Jakarta'));
     } else {
       setSetupDone(false);
       setHistoryData({});
       setTargets(initialDefaultTargets);
       setInitialTargets(initialDefaultTargets);
-      setInitialTz('Asia/Jakarta (WIB)');
+      setInitialTz('Asia/Jakarta');
     }
   }, [currentUser]);
 
@@ -142,13 +224,75 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
 
   const [currentTimeStr, setCurrentTimeStr] = useState('');
 
+  // Sync drumIndex -> timezone state
+  useEffect(() => {
+    const entry = TZ_LIST[drumIndex];
+    if (entry) setTimezone(entry.iana);
+  }, [drumIndex]);
+
+  // Drum drag/scroll interaction
+  useEffect(() => {
+    const el = drumRef.current;
+    if (!el) return;
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      setDrumIndex(prev => Math.max(0, Math.min(TZ_LIST.length - 1, prev + (e.deltaY > 0 ? 1 : -1))));
+    };
+
+    const onTouchStart = (e) => {
+      isDraggingRef.current = true;
+      dragStartYRef.current = e.touches[0].clientY;
+      dragStartIndexRef.current = drumIndex;
+    };
+    const onTouchMove = (e) => {
+      if (!isDraggingRef.current) return;
+      const dy = dragStartYRef.current - e.touches[0].clientY;
+      const delta = Math.round(dy / 40);
+      setDrumIndex(Math.max(0, Math.min(TZ_LIST.length - 1, dragStartIndexRef.current + delta)));
+    };
+    const onTouchEnd = () => { isDraggingRef.current = false; };
+
+    const onMouseDown = (e) => {
+      isDraggingRef.current = true;
+      dragStartYRef.current = e.clientY;
+      dragStartIndexRef.current = drumIndex;
+    };
+    const onMouseMove = (e) => {
+      if (!isDraggingRef.current) return;
+      const dy = dragStartYRef.current - e.clientY;
+      const delta = Math.round(dy / 40);
+      setDrumIndex(Math.max(0, Math.min(TZ_LIST.length - 1, dragStartIndexRef.current + delta)));
+    };
+    const onMouseUp = () => { isDraggingRef.current = false; };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('touchstart', onTouchStart);
+    el.addEventListener('touchmove', onTouchMove);
+    el.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    el.addEventListener('mousedown', onMouseDown);
+
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      el.removeEventListener('mousedown', onMouseDown);
+    };
+  }, [drumIndex]);
+
   // Live Clock & Real Calendar Day Calculation in Selected Timezone
   useEffect(() => {
     const updateClockAndDay = () => {
-      const ianaZone = timezone?.split(' ')[0] || 'Asia/Jakarta';
-      let tzAbbr = 'WIB';
-      if (ianaZone.includes('Makassar')) tzAbbr = 'WITA';
-      if (ianaZone.includes('Jayapura')) tzAbbr = 'WIT';
+      const ianaZone = normalizeTzToIana(timezone);
+      let tzAbbr = '';
+      if (ianaZone.includes('Jakarta')) tzAbbr = ' WIB';
+      else if (ianaZone.includes('Makassar')) tzAbbr = ' WITA';
+      else if (ianaZone.includes('Jayapura')) tzAbbr = ' WIT';
 
       const now = new Date();
 
@@ -160,13 +304,13 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
         hour12: false
       });
       const formattedTime = formatter.format(now).replace(':', '.');
-      setCurrentTimeStr(`${formattedTime} ${tzAbbr}`);
+      setCurrentTimeStr(`${formattedTime}${tzAbbr}`);
 
       // Calculate calendar day difference relative to start date in selected timezone
       if (startDate) {
         try {
           const yearFormatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: ianaZone,
+            timeZone: normalizeTzToIana(timezone),
             year: 'numeric',
             month: '2-digit',
             day: '2-digit'
@@ -436,18 +580,65 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
             <div className="setup-card">
               <h3><Clock size={20} color="#2F6323" /> 1. Zona Waktu &amp; Jadwal</h3>
               <p className="setup-subtext">Penentuan pergantian hari otomatis disesuaikan dengan zona lokasi Anda.</p>
-              
-              <div className="form-group" style={{ marginTop: '16px' }}>
-                <label className="form-label">Pilih Zona Waktu Anda:</label>
-                <select 
-                  className="form-input" 
-                  value={timezone} 
-                  onChange={(e) => setTimezone(e.target.value)}
+
+              {/* Auto-sync toggle — only active when TZ not yet saved (first-time setup) */}
+              <div className="tz-autosync-row" style={{ marginTop: '16px', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-dark)' }}>Sinkronisasi Otomatis Perangkat</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '2px' }}>
+                    {!setupDone
+                      ? 'Gunakan zona waktu perangkat ini (hanya berlaku saat pengaturan pertama)'
+                      : 'Zona waktu sudah terkunci dari pengaturan awal'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (setupDone) return; // locked after first setup
+                    const next = !autoSyncTz;
+                    setAutoSyncTz(next);
+                    if (next) {
+                      const deviceIana = getDeviceTzIana();
+                      const entry = ianaToTzEntry(deviceIana);
+                      const idx = TZ_LIST.findIndex(t => t.iana === (entry?.iana || 'Asia/Jakarta'));
+                      setDrumIndex(idx >= 0 ? idx : TZ_LIST.findIndex(t => t.iana === 'Asia/Jakarta'));
+                    }
+                  }}
+                  className={`tz-toggle-btn ${autoSyncTz ? 'tz-toggle-on' : 'tz-toggle-off'} ${setupDone ? 'tz-toggle-locked' : ''}`}
+                  title={setupDone ? 'Zona waktu terkunci dari sesi pengaturan pertama' : ''}
                 >
-                  <option value="Asia/Jakarta (WIB)">Asia/Jakarta (WIB - UTC+7)</option>
-                  <option value="Asia/Makassar (WITA)">Asia/Makassar (WITA - UTC+8)</option>
-                  <option value="Asia/Jayapura (WIT)">Asia/Jayapura (WIT - UTC+9)</option>
-                </select>
+                  <span className="tz-toggle-knob" />
+                </button>
+              </div>
+
+              {/* Drum Picker */}
+              <div style={{ opacity: autoSyncTz && !setupDone ? 0.45 : 1, transition: 'opacity 0.2s', pointerEvents: autoSyncTz && !setupDone ? 'none' : 'auto' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#64748B', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pilih Offset UTC secara Manual</div>
+                <div className="tz-drum-wrapper" ref={drumRef}>
+                  {/* Shadow overlays top/bottom */}
+                  <div className="tz-drum-shadow-top" />
+                  <div className="tz-drum-shadow-bottom" />
+                  {/* Selection highlight bar */}
+                  <div className="tz-drum-selector" />
+                  {/* Drum items */}
+                  <div
+                    className="tz-drum-inner"
+                    style={{ transform: `translateY(calc(${-drumIndex} * 48px + 48px))` }}
+                  >
+                    {TZ_LIST.map((tz, i) => (
+                      <div
+                        key={tz.iana}
+                        className={`tz-drum-item ${i === drumIndex ? 'tz-drum-active' : i === drumIndex - 1 || i === drumIndex + 1 ? 'tz-drum-adjacent' : 'tz-drum-far'}`}
+                        onClick={() => setDrumIndex(i)}
+                      >
+                        {tz.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="tz-drum-caption">
+                  {TZ_LIST[drumIndex]?.iana || 'Asia/Jakarta'}
+                </div>
               </div>
             </div>
 

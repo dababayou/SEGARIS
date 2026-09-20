@@ -1,4 +1,4 @@
-﻿/* Global Design Tokens matching color-pallete.png */
+/* Global Design Tokens matching color-pallete.png */
 :root {
   --color-cream: #FFFCF4;
   --color-lime: #C7DC5B;
@@ -3192,3 +3192,155 @@ button:active:not(:disabled),
     justify-content: center;
   }
 }
+
+/* ============================================================
+   TIMEZONE DRUM PICKER + AUTO-SYNC TOGGLE
+   ============================================================ */
+
+/* Auto-sync row layout */
+.tz-autosync-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-cream);
+  border: 1px solid rgba(47, 99, 35, 0.12);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+/* Toggle button */
+.tz-toggle-btn {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.25s ease;
+  padding: 0;
+  outline: none;
+}
+.tz-toggle-off {
+  background: #CBD5E1;
+}
+.tz-toggle-on {
+  background: var(--color-forest);
+}
+.tz-toggle-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tz-toggle-knob {
+  position: absolute;
+  top: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  transition: left 0.22s cubic-bezier(0.4,0,0.2,1);
+  left: 3px;
+}
+.tz-toggle-on .tz-toggle-knob {
+  left: calc(100% - 25px);
+}
+
+/* Drum wrapper */
+.tz-drum-wrapper {
+  position: relative;
+  width: 100%;
+  height: 144px; /* 3 items visible: 48px each */
+  overflow: hidden;
+  background: #fff;
+  border: 1.5px solid rgba(47, 99, 35, 0.18);
+  border-radius: 16px;
+  cursor: grab;
+  user-select: none;
+}
+.tz-drum-wrapper:active {
+  cursor: grabbing;
+}
+
+/* Gradient fade top/bottom */
+.tz-drum-shadow-top,
+.tz-drum-shadow-bottom {
+  position: absolute;
+  left: 0; right: 0;
+  height: 48px;
+  z-index: 2;
+  pointer-events: none;
+}
+.tz-drum-shadow-top {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.92) 0%, transparent 100%);
+}
+.tz-drum-shadow-bottom {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(255,255,255,0.92) 0%, transparent 100%);
+}
+
+/* Center selection bar */
+.tz-drum-selector {
+  position: absolute;
+  top: 48px;
+  left: 12px; right: 12px;
+  height: 48px;
+  border-top: 1.5px solid rgba(47, 99, 35, 0.25);
+  border-bottom: 1.5px solid rgba(47, 99, 35, 0.25);
+  background: rgba(47, 99, 35, 0.05);
+  border-radius: 8px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Drum inner scroll container */
+.tz-drum-inner {
+  position: absolute;
+  top: 0;
+  left: 0; right: 0;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Individual drum items */
+.tz-drum-item {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, font-size 0.15s, opacity 0.15s;
+  z-index: 3;
+  position: relative;
+}
+.tz-drum-active {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-forest);
+  opacity: 1;
+}
+.tz-drum-adjacent {
+  font-size: 0.98rem;
+  color: #64748B;
+  opacity: 0.75;
+}
+.tz-drum-far {
+  font-size: 0.88rem;
+  color: #94A3B8;
+  opacity: 0.4;
+}
+
+/* Caption below drum */
+.tz-drum-caption {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #94A3B8;
+  font-family: var(--font-sans);
+  letter-spacing: 0.03em;
+}
+
