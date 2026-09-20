@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 const SYSTEM_PROMPT = `Anda adalah asisten AI resmi dari aplikasi "SEGARIS - Masa Depan Sehat & Sejahtera". 
 Fokus Anda adalah mempromosikan Sustainable Development Goal (SDG) 3: Kehidupan Sehat dan Sejahtera.
@@ -38,8 +38,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'API Key Gemini belum dikonfigurasi di environment Vercel.' });
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     // Format history for context
     let formattedHistory = '';
@@ -56,12 +55,19 @@ export default async function handler(req, res) {
       `${formattedHistory}` +
       `Pesan Pengguna Saat Ini: ${message}\n\nBalasan AI:`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+    });
+
+    const responseText = response.text;
 
     res.status(200).json({ reply: responseText });
   } catch (error) {
     console.error('Error in chat API:', error);
-    res.status(500).json({ error: 'Terjadi kesalahan pada server AI. Silakan coba lagi.' });
+    res.status(500).json({ 
+      error: 'Terjadi kesalahan pada server AI. Silakan coba lagi.',
+      details: error.message 
+    });
   }
 }
