@@ -616,8 +616,9 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
             <p>Atur target harian, sesuaikan frekuensi, dan atur zona waktu sebelum memulai perjalanan pola hidup sehat 30 hari.</p>
           </div>
 
-          <div className="setup-grid">
+          <div className="setup-grid" style={setupDone ? { gridTemplateColumns: '1fr' } : {}}>
             {/* Left Card: Timezone & General Settings */}
+            {!setupDone && (
             <div className="setup-card">
               <h3><Clock size={20} color="#2F6323" /> 1. Zona Waktu &amp; Jadwal</h3>
               <p className="setup-subtext">Penentuan pergantian hari otomatis disesuaikan dengan zona lokasi Anda.</p>
@@ -682,11 +683,12 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Right Card: Custom Target List Manager */}
             <div className="setup-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3><Edit3 size={20} color="#2F6323" /> 2. Target Harian &amp; Custom</h3>
+                <h3><Edit3 size={20} color="#2F6323" /> {setupDone ? 'Target Harian & Custom' : '2. Target Harian & Custom'}</h3>
                 <button 
                   type="button" 
                   onClick={() => setShowAddForm(!showAddForm)}
@@ -890,7 +892,7 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
                     <button 
                       onClick={() => handleAddRecommendedTarget(rt)}
                       className="btn-auth-primary"
-                      style={{ padding: '6px 12px', fontSize: '0.85rem', minWidth: '100px', height: '36px' }}
+                      style={{ padding: '6px 12px', fontSize: '0.85rem', minWidth: '100px', height: '36px', flexShrink: 0, whiteSpace: 'nowrap' }}
                     >
                       <Plus size={16} style={{ marginRight: '4px' }} /> Tambah
                     </button>
