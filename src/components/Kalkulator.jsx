@@ -1,34 +1,30 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, ArrowRight, Activity, Flame, Droplets } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
+  // Shared inputs (synced across all 3 calculators)
+  const [sharedWeight, setSharedWeight] = useState('');
+  const [sharedHeight, setSharedHeight] = useState('');
+
   // BMI State
-  const [bmiWeight, setBmiWeight] = useState('');
-  const [bmiHeight, setBmiHeight] = useState('');
   const [bmiResult, setBmiResult] = useState(null); // { bmi: '23,2', category: '...', points: 0 }
 
   // Calorie State
-  const [calWeight, setCalWeight] = useState('');
-  const [calHeight, setCalHeight] = useState('');
   const [calAge, setCalAge] = useState('');
   const [calGender, setCalGender] = useState('Pria');
   const [calActivity, setCalActivity] = useState('1.375');
   const [calResult, setCalResult] = useState(null); // { calories: 2222, bmr: 1616 }
 
   // Water State
-  const [waterWeight, setWaterWeight] = useState('');
   const [waterActivity, setWaterActivity] = useState('santai');
   const [waterResult, setWaterResult] = useState(null); // { liters: '2,5', glasses: 10 }
 
   // Load existing calculated BMI on mount & currentUser change
   useEffect(() => {
-    setBmiWeight('');
-    setBmiHeight('');
-    setCalWeight('');
-    setCalHeight('');
+    setSharedWeight('');
+    setSharedHeight('');
     setCalAge('');
-    setWaterWeight('');
     setCalResult(null);
     setWaterResult(null);
 
@@ -47,8 +43,8 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
   // Calculate BMI
   const handleCalcBmi = async (e) => {
     e.preventDefault();
-    const w = parseFloat(bmiWeight);
-    const h = parseFloat(bmiHeight) / 100;
+    const w = parseFloat(sharedWeight);
+    const h = parseFloat(sharedHeight) / 100;
 
     if (w > 0 && h > 0) {
       const valNum = parseFloat((w / (h * h)).toFixed(1));
@@ -77,7 +73,7 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
         rawCategory: rawCat,
         points: points,
         weight: w,
-        height: parseFloat(bmiHeight),
+        height: parseFloat(sharedHeight),
         date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
       };
 
@@ -100,8 +96,8 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
   // Calculate Calories (Mifflin-St Jeor)
   const handleCalcCalories = (e) => {
     e.preventDefault();
-    const w = parseFloat(calWeight);
-    const h = parseFloat(calHeight);
+    const w = parseFloat(sharedWeight);
+    const h = parseFloat(sharedHeight);
     const a = parseFloat(calAge);
     const mult = parseFloat(calActivity);
 
@@ -120,7 +116,7 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
   // Calculate Water
   const handleCalcWater = (e) => {
     e.preventDefault();
-    const w = parseFloat(waterWeight);
+    const w = parseFloat(sharedWeight);
     if (w > 0) {
       let baseMl = w * 35;
       if (waterActivity === 'sedang') baseMl += 400;
@@ -160,8 +156,8 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
                     step="1"
                     className="form-input"
                     placeholder="Contoh: 65"
-                    value={bmiWeight}
-                    onChange={(e) => setBmiWeight(e.target.value < 0 ? '' : e.target.value)}
+                    value={sharedWeight}
+                    onChange={(e) => setSharedWeight(e.target.value < 0 ? '' : e.target.value)}
                     required
                   />
                 </div>
@@ -173,8 +169,8 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
                     step="1"
                     className="form-input"
                     placeholder="Contoh: 170"
-                    value={bmiHeight}
-                    onChange={(e) => setBmiHeight(e.target.value < 0 ? '' : e.target.value)}
+                    value={sharedHeight}
+                    onChange={(e) => setSharedHeight(e.target.value < 0 ? '' : e.target.value)}
                     required
                   />
                 </div>
@@ -225,8 +221,8 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
                     step="1"
                     className="form-input"
                     placeholder="Contoh: 65"
-                    value={calWeight}
-                    onChange={(e) => setCalWeight(e.target.value < 0 ? '' : e.target.value)}
+                    value={sharedWeight}
+                    onChange={(e) => setSharedWeight(e.target.value < 0 ? '' : e.target.value)}
                     required
                   />
                 </div>
@@ -238,8 +234,8 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
                     step="1"
                     className="form-input"
                     placeholder="Contoh: 170"
-                    value={calHeight}
-                    onChange={(e) => setCalHeight(e.target.value < 0 ? '' : e.target.value)}
+                    value={sharedHeight}
+                    onChange={(e) => setSharedHeight(e.target.value < 0 ? '' : e.target.value)}
                     required
                   />
                 </div>
@@ -315,8 +311,8 @@ export default function Kalkulator({ currentUser, onNavigateToQuiz }) {
                   step="1"
                   className="form-input"
                   placeholder="Contoh: 65"
-                  value={waterWeight}
-                  onChange={(e) => setWaterWeight(e.target.value < 0 ? '' : e.target.value)}
+                  value={sharedWeight}
+                  onChange={(e) => setSharedWeight(e.target.value < 0 ? '' : e.target.value)}
                   required
                 />
               </div>
