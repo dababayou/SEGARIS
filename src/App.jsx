@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Kalkulator from './components/Kalkulator';
@@ -12,6 +12,7 @@ import DashboardLayout from './components/DashboardLayout';
 import Footer from './components/Footer';
 import { LogOut, X } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
+import Chatbot from './components/Chatbot';
 
 export default function App() {
   const [privacyOpen, setPrivacyOpen] = useState(false);
@@ -76,6 +77,16 @@ export default function App() {
     setCurrentView('home');
     window.location.hash = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBotNavigate = (targetId) => {
+    if (currentView !== 'home') {
+      setCurrentView('home');
+      window.location.hash = '';
+    }
+    setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const triggerLogoutConfirm = () => {
@@ -218,6 +229,11 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* Chatbot Widget */}
+      <Chatbot 
+        currentPage={currentView === 'home' ? 'Beranda (Landing Page Utama)' : currentView === 'auth' ? 'Halaman Login/Register' : 'Dashboard Profil'} 
+        onNavigate={handleBotNavigate} 
+      />
     </div>
   );
 }
