@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, RotateCcw, Activity, Heart, ShieldAlert, Zap, Info, Lock, Calculator, Home, X, LogOut } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -120,6 +120,18 @@ const focusAdviceBank = {
   Q8: 'pertimbangkan berhenti merokok dan batasi paparan lingkungan asap rokok pasif',
   Q9: 'perbaiki durasi tidur ke 7–8 jam/malam dengan jadwal waktu tidur yang teratur',
   Q10: 'kelola tingkat stres dengan teknik relaksasi, olahraga ringan, atau istirahat cukup'
+};
+
+const recommendedTargetsBank = {
+  Q1: { id: 'rec_weight', text: 'Olahraga Kardio Ringan', type: 'quantitative', unit: 'Menit', targetVal: 30, minGood: 30, maxGood: 120, icon: 'Flame', frequency: 'daily' },
+  Q2: { id: 'rec_veggies', text: 'Makan minimal 3 porsi sayur & buah', type: 'quantitative', unit: 'Porsi', targetVal: 3, minGood: 3, maxGood: 8, icon: 'Salad', frequency: 'daily' },
+  Q3: { id: 'rec_nosugar', text: 'Bebas Minuman Manis & Boba', type: 'boolean', targetVal: 1, icon: 'Ban', frequency: 'daily' },
+  Q4: { id: 'rec_nofastfood', text: 'Bebas Gorengan & Fast Food', type: 'boolean', targetVal: 1, icon: 'Ban', frequency: 'daily' },
+  Q5: { id: 'rec_nosalt', text: 'Batasi Tambahan Garam/Kecap Ekstra', type: 'boolean', targetVal: 1, icon: 'Ban', frequency: 'daily' },
+  Q6: { id: 'rec_workout', text: 'Olahraga Intensitas Sedang', type: 'quantitative', unit: 'Menit', targetVal: 30, minGood: 30, maxGood: 150, icon: 'Activity', frequency: 'daily' },
+  Q8: { id: 'rec_nosmoking', text: 'Bebas Rokok Aktif / Hindari Asap', type: 'boolean', targetVal: 1, icon: 'Ban', frequency: 'daily' },
+  Q9: { id: 'rec_sleep', text: 'Tidur Berkualitas 7-8 Jam', type: 'quantitative', unit: 'Jam', targetVal: 7.5, minGood: 7, maxGood: 9, icon: 'Moon', frequency: 'daily' },
+  Q10: { id: 'rec_relax', text: 'Waktu Relaksasi/Me-Time (Tanpa Layar)', type: 'quantitative', unit: 'Menit', targetVal: 15, minGood: 15, maxGood: 60, icon: 'Heart', frequency: 'daily' }
 };
 
 export default function KuisSkrining({ currentUser, onNavigateToCalc }) {
@@ -249,6 +261,19 @@ export default function KuisSkrining({ currentUser, onNavigateToCalc }) {
     // Advice triggers
     const adviceList = triggers.map((t) => focusAdviceBank[t]).filter(Boolean);
     const uniqueAdvice = [...new Set(adviceList)];
+    
+    // Recommended Targets
+    const targetList = triggers.map((t) => recommendedTargetsBank[t]).filter(Boolean);
+    
+    // Filter out duplicates based on id
+    const uniqueTargets = [];
+    const seenIds = new Set();
+    for (const t of targetList) {
+      if (!seenIds.has(t.id)) {
+        seenIds.add(t.id);
+        uniqueTargets.push(t);
+      }
+    }
 
     const resultObj = {
       score: totalScore,
@@ -261,6 +286,7 @@ export default function KuisSkrining({ currentUser, onNavigateToCalc }) {
       cardioPoints,
       lifestylePoints,
       advice: uniqueAdvice.length > 0 ? uniqueAdvice.slice(0, 3) : ['pertahankan pola makan seimbang & aktivitas fisik harian Anda!'],
+      recommendedTargets: uniqueTargets,
       date: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
     };
 
@@ -268,6 +294,7 @@ export default function KuisSkrining({ currentUser, onNavigateToCalc }) {
     setCurrentStep(10);
     const quizKey = currentUser?.id ? `SEGARIS_quiz_result_${currentUser.id}` : 'SEGARIS_quiz_result';
     localStorage.setItem(quizKey, JSON.stringify(resultObj));
+    window.dispatchEvent(new Event('segaris_quiz_updated'));
 
     // Save to Supabase user_metadata if configured
     if (currentUser && isSupabaseConfigured && supabase) {

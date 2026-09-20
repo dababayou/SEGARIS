@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Check, Flame, Trophy, Calendar, Cloud, Lock, X, Plus, Settings, AlertCircle, Clock, Moon, Droplets, Footprints, Salad, Ban, Edit3, Trash2, ArrowRight } from 'lucide-react';
+import { Check, Flame, Trophy, Calendar, Cloud, Lock, X, Plus, Settings, AlertCircle, Clock, Moon, Droplets, Footprints, Salad, Ban, Edit3, Trash2, ArrowRight, Activity, Heart, Sparkles } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const initialDefaultTargets = [
@@ -88,6 +88,7 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
   const [currentDayNum, setCurrentDayNum] = useState(1);
   const [startDate, setStartDate] = useState(() => new Date().toISOString());
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [recommendedTargets, setRecommendedTargets] = useState([]);
   const syncTimeoutRef = useRef(null);
 
   // Timezone Drum Picker State
@@ -200,6 +201,35 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
       setInitialTargets(initialDefaultTargets);
       setInitialTz('Asia/Jakarta');
     }
+  }, [currentUser]);
+
+  const loadRecommendedTargets = () => {
+    let meta = currentUser?.user_metadata || {};
+    let uid = currentUser?.id;
+    const quizKey = uid ? `SEGARIS_quiz_result_${uid}` : 'SEGARIS_quiz_result';
+    
+    let localQuiz = null;
+    try {
+      const str = localStorage.getItem(quizKey) || localStorage.getItem('SEGARIS_quiz_result');
+      if (str) localQuiz = JSON.parse(str);
+    } catch(e){}
+
+    const savedQuiz = meta.SEGARIS_quiz_result || localQuiz;
+    if (savedQuiz && savedQuiz.recommendedTargets) {
+      setRecommendedTargets(savedQuiz.recommendedTargets);
+    } else {
+      setRecommendedTargets([]);
+    }
+  };
+
+  useEffect(() => {
+    loadRecommendedTargets();
+  }, [currentUser]);
+
+  useEffect(() => {
+    const handleUpdate = () => loadRecommendedTargets();
+    window.addEventListener('segaris_quiz_updated', handleUpdate);
+    return () => window.removeEventListener('segaris_quiz_updated', handleUpdate);
   }, [currentUser]);
 
   // Flush pending changes to Supabase when user navigates away or component unmounts
@@ -388,6 +418,17 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
     setTargets(prev => [...prev, newTarget]);
     setNewTargetText('');
     setShowAddForm(false);
+  };
+
+  // Add Recommended Target
+  const handleAddRecommendedTarget = (rt) => {
+    const newTarget = { ...rt, isMandatory: false };
+    const newTargets = [...targets, newTarget];
+    setTargets(newTargets);
+    setInitialTargets(newTargets);
+    if (setupDone) {
+      persistState(newTargets, historyData, setupDone, timezone, startDate);
+    }
   };
 
   // Delete Custom Target (Staged in React state until Save is clicked)
@@ -825,6 +866,39 @@ export default function Challenge30Days({ currentUser, onOpenAuth }) {
           <div className="progress-bar-bg today-progress-bar">
             <div className="progress-bar-fill" style={{ width: `${todayProgressPercent}%` }}></div>
           </div>
+
+          {/* Dynamic Recommendations Panel */}
+          {recommendedTargets.filter((rt) => !targets.some((t) => t.id === rt.id)).length > 0 && (
+            <div className="recommendation-banner" style={{ marginTop: '24px', marginBottom: '24px', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '16px', padding: '16px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#166534', fontWeight: 800 }}>
+                <Sparkles size={20} color="#166534" /> 
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Rekomendasi Target Khusus Anda</h3>
+              </div>
+              <p style={{ fontSize: '0.9rem', color: '#15803D', marginBottom: '16px', lineHeight: 1.5 }}>
+                Berdasarkan hasil Kuis Skrining PTM Anda, kami menyarankan menambahkan target berikut untuk memaksimalkan gaya hidup sehat Anda.
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {recommendedTargets.filter((rt) => !targets.some((t) => t.id === rt.id)).map((rt) => (
+                  <div key={rt.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px 16px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-dark)' }}>{rt.text}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '2px' }}>
+                        {rt.type === 'quantitative' ? `Target: ${rt.targetVal} ${rt.unit}` : 'Target: Ya/Tidak'}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => handleAddRecommendedTarget(rt)}
+                      className="btn-auth-primary"
+                      style={{ padding: '6px 12px', fontSize: '0.85rem', minWidth: '100px', height: '36px' }}
+                    >
+                      <Plus size={16} style={{ marginRight: '4px' }} /> Tambah
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Subtitle: Target Hari Ini */}
           <h3 className="section-sub-title">Target Hari Ini (Hari ke-{currentDayNum} • {currentTimeStr})</h3>
