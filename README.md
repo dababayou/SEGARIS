@@ -216,9 +216,6 @@ npm run preview
 ```text
 SEGARIS/
 ├── assets/                     # Aset gambar grafis, kartu interaktif, & palet
-├── docs/                       # Dokumen pendukung, struktur kuis, & regulasi lomba
-│   ├── Guidebook TIC 9.0.pdf
-│   └── Struktur Kuis Detail.docx
 ├── public/                     # Aset statis (Favicon, Logo SEGARIS, Ilustrasi)
 │   ├── hero_bg.png
 │   └── logo.png
