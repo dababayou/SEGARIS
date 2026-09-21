@@ -256,7 +256,8 @@ SEGARIS/
 
 Proyek ini dirancang dan dikembangkan dengan penuh dedikasi oleh:
 
-* **Fullstack Developer**: [dababayou](https://github.com/dababayou)
+* **Idea, Concept, Design**: Chelsea Franssiska Putri Gautama
+* **Fullstack Developer**: Bayu Nismara Nagatama
 
 ---
 
